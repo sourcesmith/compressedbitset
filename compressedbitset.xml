@@ -88,13 +88,7 @@
     <!-- Paths to be included in compilation bootclasspath -->
   </path>
   
-  <path id="compressedbitset.module.classpath">
-    <path refid="${module.jdk.classpath.compressedbitset}"/>
-    <pathelement location="${module.compressedbitset.basedir}/lib/colt.jar"/>
-    <pathelement location="${module.compressedbitset.basedir}/../../Program Files/JetBrains/IntelliJ IDEA 6.0/lib/junit.jar"/>
-  </path>
-  
-  
+
   <patternset id="excluded.from.module.compressedbitset">
     <patternset refid="ignored.files"/>
   </patternset>
@@ -109,7 +103,14 @@
     </dirset>
   </path>
   
-  
+    <path id="compressedbitset.module.classpath">
+      <path refid="${module.jdk.classpath.compressedbitset}"/>
+      <pathelement location="${module.compressedbitset.basedir}/lib/colt.jar"/>
+      <pathelement location="${module.compressedbitset.basedir}/../../Program Files/JetBrains/IntelliJ IDEA 6.0/lib/junit.jar"/>
+      <path location="${compressedbitset.output.dir}"/>
+    </path>
+
+
   <target name="compile.module.compressedbitset" depends="compile.module.compressedbitset.production,compile.module.compressedbitset.tests" description="Compile module CompressedBitSet"/>
   
   <target name="compile.module.compressedbitset.production" description="Compile module CompressedBitSet; production classes">
@@ -145,13 +146,11 @@
   
   <target name="all" depends="init, clean, compile.module.compressedbitset, dist" description="build all"/>
 
+  <taskdef resource="genjar.properties"/>
   <target name="dist" depends="compile.module.compressedbitset">
 	<genjar jarfile="compressedbitset-0.1.jar">
-    		<class>
-      			<fileset dir="${classes.dir}>
-        			<include name="org/devbrat/util/WAHBitSet.class">
-      			</fileset>    
-    		</class>
-  	</genjar>
+        <class name="org.devbrat.util.WAHBitSet"/>
+        <classpath refid="compressedbitset.module.classpath"/>
+      </genjar>
   </target>
 </project>
