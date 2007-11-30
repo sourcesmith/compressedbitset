@@ -9,11 +9,10 @@ import java.util.logging.Logger;
 import java.io.Serializable;
 
 /**
- * Created by IntelliJ IDEA.
- * User: ddash
- * Date: Oct 9, 2007
- * Time: 8:00:48 PM
- * To change this template use File | Settings | File Templates.
+ * WAHBitSet implements the Word-Aligned Hybrid compressed BitSet.
+ *
+ * Using WAH as the compression scheme the class achieves both compressaion and
+ * performance on bitset operations.
  */
 public class WAHBitSet {
     private static Logger logger = Logger.getLogger(WAHBitSet.class.getName());
@@ -21,13 +20,13 @@ public class WAHBitSet {
     private static final long serialVersionUID = -7210214822424094012L;
 
     // constances defined in bitvector
-    public static final int MAXBITS = 8 * 4 - 1;
-    public static final int SECONDBIT = MAXBITS - 1;
-    public static final int ALLONES = Integer.MAX_VALUE;
-    public static final int MAXCNT = ((1 << SECONDBIT) - 1);
-    public static final int FILLBIT = (1 << SECONDBIT);
-    public static final int HEADER0 = (2 << SECONDBIT);
-    public static final int HEADER1 = (3 << SECONDBIT);
+    private static final int MAXBITS = 8 * 4 - 1;
+    private static final int SECONDBIT = MAXBITS - 1;
+    private static final int ALLONES = Integer.MAX_VALUE;
+    private static final int MAXCNT = ((1 << SECONDBIT) - 1);
+    private static final int FILLBIT = (1 << SECONDBIT);
+    private static final int HEADER0 = (2 << SECONDBIT);
+    private static final int HEADER1 = (3 << SECONDBIT);
 
     private static final boolean RUN_UNTESTED_CODE = false;
     private static final int DEFAULT_INITIAL_SIZE = 4;
@@ -37,6 +36,9 @@ public class WAHBitSet {
     IntArrayList vec = new IntArrayList(DEFAULT_INITIAL_SIZE);
     ActiveWord active = new ActiveWord();
 
+    /**
+     * Create an empty bitset.
+     */
     public WAHBitSet() {
     }
 
@@ -110,6 +112,7 @@ public class WAHBitSet {
 
     /**
      * Returns the number of 1 bits in the bitset.
+     *
      * @return the number of 1 bits in the bitset.
      */
     public int cardinality() {
@@ -143,12 +146,21 @@ public class WAHBitSet {
     }
 
     /**
+     * Returns the amount of memory used by the compressed bit set
+     * 
      * @return the amount of memory used by the compressed bit set
      */
     public long memSize() {
         return vec.size() + 2;
     }
 
+    /**
+     * Returns a new WAH compressed bitset after anding the current bitset
+     * with the <i>other</i> bitset.
+     *
+     * @param other the bitset to and with
+     * @return The resulting bitset
+     */
     public WAHBitSet and(WAHBitSet other) {
         WAHBitSet ret = new WAHBitSet();
 
@@ -159,11 +171,14 @@ public class WAHBitSet {
             other.setBit(numBits() - 1, 0);
         }
 
+        // if there is something in the vector.
         if(vec.size() > 0) {
+            // create new run objects and decode them.
             run xrun = new run(vec), yrun = new run(other.vec);
             xrun.decode();
             yrun.decode();
             do {
+                // if you finished a run, then get the next one.
                 if (xrun.nWords == 0) {
                     xrun.inc();
                     xrun.decode();
@@ -176,39 +191,63 @@ public class WAHBitSet {
 
                 if (xrun.isFill()) {
                     if (yrun.isFill()) {
+                        // both are fills... this is the best.
                         int nWords = Math.min(xrun.nWords, yrun.nWords);
                         ret.appendFill(nWords, xrun.fillWord & yrun.fillWord);
                         xrun.nWords -= nWords;
                         yrun.nWords -= nWords;
                     } else {
+                        // just cut through the other run
                         chewUpRun(xrun, ret, yrun);
                     }
                 } else if (yrun.isFill()) {
+                    // again do the same, with different order.
                     chewUpRun(yrun, ret, xrun);
                 } else {
+                    // both are literals, so get the new literal and
+                    // append it to the return value.
                     ret.active.val = xrun.get() &yrun.get();
                     ret.appendLiteral();
                     yrun.nWords = 0;
                     xrun.nWords = 0;
                 }
-
+            // till they are not at the end.
             } while (!(xrun.end() && yrun.end()));
         }
+
+        // set the active word.
         ret.active.val = this.active.val & other.active.val;
         ret.active.nbits = this.active.nbits;
 
+        // ensure that the counts are set properly.
         ret.doCount();
+
         return ret;
     }
 
-    public WAHBitSet or(WAHBitSet docSet) {
-        return genericOp(OpType.Or, docSet);
+    /**
+     * Returns a new WAH compressed bitset after oring the current bitset
+     * with the <i>other</i> bitset. This function is not as optimized as <i>and</i>
+     *
+     * @param other the bitset to or with
+     * @return The resulting bitset
+     */    
+    public WAHBitSet or(WAHBitSet other) {
+        return genericOp(OpType.Or, other);
     }
 
-    public WAHBitSet andNot(WAHBitSet docSet) {
-        return genericOp(OpType.AndNot, docSet);
+    private WAHBitSet andNot(WAHBitSet other) {
+        return genericOp(OpType.AndNot, other);
     }
 
+    /**
+     * This is an optimization over the and function.  This does not
+     * create new bitset. This just counts the number of 1 bits common
+     * between the two bitsets.
+     *
+     * @param other the bitset to and with.
+     * @return the number of 1s common between two bitsets.
+     */
     public int andSize(WAHBitSet other) {
         int size = 0;
 
@@ -819,7 +858,7 @@ public class WAHBitSet {
         return (v & HEADER1) == HEADER1;
     }
 
-    public static boolean moreThanInUnsigned(int val1, int val2) {
+    private static boolean moreThanInUnsigned(int val1, int val2) {
         if (val1 >= 0 && val2 >= 0) {
             return val1 > val2;
         } else if (val1 < 0 && val2 >= 0) {
