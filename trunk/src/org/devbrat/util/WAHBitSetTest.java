@@ -142,6 +142,26 @@ public class WAHBitSetTest extends TestCase {
         assertTrue(!iter1.hasNext());
     }
 
+    public void testAndBug() throws Exception {
+        int[] s1 = new int[] { 99, 185, 240, 250, 265, 283, 312, 457, 488, 516,
+                673, 775, 809, 954, 974 };
+        int[] s2 = new int[] { 97, 160, 230, 237, 253, 254, 298, 309, 330, 358,
+                383, 443, 481, 523, 589, 607, 748, 775, 941, 947 };
+        WAHBitSet bs1 = fromInts(s1);
+        WAHBitSet bs2 = fromInts(s2);
+        WAHBitSet and = bs1.and(bs2);
+        // should be 775, but get 868
+        assertEquals(775, and.iterator().next());
+    }
+
+    private WAHBitSet fromInts(int[] ints) {
+        WAHBitSet bitSet = new WAHBitSet();
+        for (int i : ints) {
+            bitSet.set(i);
+        }
+        return bitSet;
+    }
+
     private BitSet getBitSet(int maxSize, double fill) {
         Random rand = new Random(System.currentTimeMillis());
         int size = (int) (fill * maxSize);
