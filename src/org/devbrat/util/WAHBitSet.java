@@ -534,8 +534,10 @@ public class WAHBitSet {
 
     private static void chewUpRun(run xrun, WAHBitSet ret, run yrun) {
         if(xrun.fillWord == 0) {
-            ret.appendFill(xrun.nWords, 0);
-            xrun.nWords -= yrun.inc(xrun.nWords);
+            // trye to advance, and see how much you can advance.
+            int inc = yrun.inc(xrun.nWords);
+            ret.appendFill(inc, 0);
+            xrun.nWords -= inc;
         } else {
             while(true) {
                 int v = yrun.get();
@@ -955,6 +957,8 @@ public class WAHBitSet {
             return fill;
         }
 
+        // this function tries to advance the run by nWords
+        // sometimes it is not possible, in that case it returns how much it advanced.
         public int inc(int nWords) {
             int orig = nWords;
             nWords--;
@@ -974,7 +978,7 @@ public class WAHBitSet {
             }
 
             return orig - nWords;
-        }
+        }        
     }
 
     /**
